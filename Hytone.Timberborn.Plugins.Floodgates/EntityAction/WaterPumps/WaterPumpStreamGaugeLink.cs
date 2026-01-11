@@ -1,6 +1,6 @@
 ﻿namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterPumps
 {
-    public class WaterPumpStreamGaugeLink
+    public class WaterPumpStreamGaugeLink: IStreamGaugeLink
     {
         public WaterPumpMonobehaviour WaterPump { get; }
 
@@ -26,9 +26,9 @@
         public bool ContaminationUnpauseBelowEnabled { get; set; }
         public bool ContaminationUnpauseAboveEnabled { get; set; }
 
-        public bool DisableDuringDrought;
-        public bool DisableDuringTemperate;
-        public bool DisableDuringBadtide;
+        public bool DisableDuringDrought { get; set; }
+        public bool DisableDuringTemperate { get; set; }
+        public bool DisableDuringBadtide { get; set; }
 
         public WaterPumpStreamGaugeLink(
             WaterPumpMonobehaviour waterPump,
@@ -55,6 +55,7 @@
             ContaminationPauseAboveThreshold = 0f;
             ContaminationUnpauseBelowThreshold = 0f;
             ContaminationUnpauseAboveThreshold = 0f;
+            DisableDuringTemperate = DisableDuringDrought = DisableDuringBadtide = false;
     }
     }
 }

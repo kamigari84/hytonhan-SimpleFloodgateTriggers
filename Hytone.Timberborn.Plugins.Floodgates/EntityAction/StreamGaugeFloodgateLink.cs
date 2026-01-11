@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents a link between a Floodgate and a Streamgauge
     /// </summary>
-    public class StreamGaugeFloodgateLink
+    public class StreamGaugeFloodgateLink : IStreamGaugeLink
     {
         public FloodgateTriggerMonoBehaviour Floodgate { get; }
 
@@ -14,14 +14,14 @@
         public float Height1 { get; set; }
         public float Height2 { get; set; }
 
-        public float ContaminationThresholdLow {  get; set; }
-        public float ContaminationThresholdHigh {  get; set; }
+        public float ContaminationThresholdLow { get; set; }
+        public float ContaminationThresholdHigh { get; set; }
         public float ContaminationHeight1 { get; set; }
         public float ContaminationHeight2 { get; set; }
 
-        public bool DisableDuringDrought;
-        public bool DisableDuringTemperate;
-        public bool DisableDuringBadtide;
+        public bool DisableDuringDrought { get; set; }
+        public bool DisableDuringTemperate { get; set; }
+        public bool DisableDuringBadtide { get; set; }
 
         public bool EnableContaminationLow { get; set; }
         public bool EnableContaminationHigh { get; set; }
@@ -40,8 +40,9 @@
             ContaminationThresholdHigh = 0f;
             ContaminationHeight1 = 0f;
             ContaminationHeight2 = 0f;
-            EnableContaminationLow = false; 
+            EnableContaminationLow = false;
             EnableContaminationHigh = false;
+            DisableDuringDrought = DisableDuringTemperate = DisableDuringTemperate = false;
         }
     }
 }

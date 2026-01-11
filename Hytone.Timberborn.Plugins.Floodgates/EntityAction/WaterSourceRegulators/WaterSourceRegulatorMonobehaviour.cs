@@ -4,12 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Timberborn.Persistence;
-using Timberborn.WeatherSystem;
 using Timberborn.BaseComponentSystem;
-using Timberborn.DeconstructionSystem;
-using Timberborn.HazardousWeatherSystem;
 using Timberborn.BlockSystem;
-using System.Reflection;
 using Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterPumps;
 using Timberborn.SingletonSystem;
 using Timberborn.WaterSourceSystem;
@@ -40,9 +36,10 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterSourceRegulator
 
         private IScheduleTriggerFactory _scheduleTriggerFactory;
         private IScheduleTrigger _scheduleTrigger;
-        private WeatherService _weatherServíce;
+        private IWeatherTypeGetter _weatherServíce;
         private WaterSourceRegulatorLinkSerializer _linkSerializer;
         private EventBus _eventBus;
+        private WeatherTypes Weather {  get; set; }
 
         private readonly List<WaterSourceRegulatorStreamGaugeLink> _waterSourceRegulatorLinks = new List<WaterSourceRegulatorStreamGaugeLink>();
         public ReadOnlyCollection<WaterSourceRegulatorStreamGaugeLink> WaterSourceRegulatorLinks { get; private set; }
@@ -69,7 +66,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterSourceRegulator
         [Inject]
         public void InjectDependencies(
             IScheduleTriggerFactory scheduleTriggerFactory,
-            WeatherService weatherService,
+            IWeatherTypeGetter weatherService,
             WaterSourceRegulatorLinkSerializer linkSerializer,
             EventBus eventBus)
         {
@@ -77,28 +74,6 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterSourceRegulator
             _weatherServíce = weatherService;
             _linkSerializer = linkSerializer;
             _eventBus = eventBus;
-        }
-
-        [OnEvent]
-        public void OnHazardousWeatherStarted(HazardousWeatherStartedEvent hazardousWeatherStartedEvent)
-        {
-            Console.WriteLine("Hazard started");
-            var hazardWeather = hazardousWeatherStartedEvent.HazardousWeather.GetType();
-            if (hazardWeather == typeof(DroughtWeather))
-            {
-                this.OnDroughtStarted();
-            }
-            else if (hazardWeather == typeof(BadtideWeather))
-            {
-                this.OnBadtideStarted();
-            }
-        }
-        
-        [OnEvent]
-        public void OnHazardousWeatherEnded(HazardousWeatherEndedEvent hazardousWeatherEndedEndedEvent)
-        {
-            Console.WriteLine("Hazard ended");
-            this.OnTemperateStarted();
         }
 
         public void Awake()
@@ -191,6 +166,8 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterSourceRegulator
             {
                 DisableScheduleOnBadtide = component.Get(DisableScheduleOnBadtideKey);
             }
+            _weatherServíce.WeatherChanging += OnWeatherChanged;
+            //Weather = _weatherServíce.GetWeatherType();
         }
 
         public void OnEnterFinishedState()
@@ -203,104 +180,97 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterSourceRegulator
             {
                 _scheduleTrigger.Enable();
             }
+            _weatherServíce.WeatherChanging += OnWeatherChanged;
+        }
+
+        private void OnWeatherChanged(IWeatherTypeGetter weatherTypeGetter, WeatherChange weatherChange)
+        {
+            Weather = weatherChange.ChangesTo;
+            if (Weather.HasFlag(WeatherTypes.Badtide))
+            {
+                var constructible = GetComponent<BlockObject>();
+                if (constructible.IsUnfinished)
+                {
+                    return;
+                }
+                var regulator = GetComponent<WaterSourceRegulator>();
+
+                if (CloseOnBadtideStarted == true && regulator.IsOpen)
+                {
+                    regulator.Close();
+                }
+                else if (OpenOnBadtideStarted == true && regulator.IsOpen == false)
+                {
+                    regulator.Open();
+                }
+                if (ScheduleEnabled && !DisableScheduleOnBadtide)
+                {
+                    _scheduleTrigger.Enable();
+                }
+                else if (DisableScheduleOnBadtide)
+                {
+                    _scheduleTrigger.Disable();
+                }
+            }
+            else if (Weather.HasFlag(WeatherTypes.Drought))
+            {
+                var constructible = GetComponent<BlockObject>();
+                if (constructible.IsUnfinished)
+                {
+                    return;
+                }
+                var regulator = GetComponent<WaterSourceRegulator>();
+
+                if (CloseOnDroughtStart == true && regulator.IsOpen)
+                {
+                    regulator.Close();
+                }
+                else if (OpenOnDroughtStart == true && regulator.IsOpen == false)
+                {
+                    regulator.Open();
+                }
+                if (ScheduleEnabled && !DisableScheduleOnDrought)
+                {
+                    _scheduleTrigger.Enable();
+                }
+                else if (DisableScheduleOnDrought)
+                {
+                    _scheduleTrigger.Disable();
+                }
+            }
+            else
+            {
+                var constructible = GetComponent<BlockObject>();
+                if (constructible.IsUnfinished)
+                {
+                    return;
+                }
+                var regulator = GetComponent<WaterSourceRegulator>();
+
+                if (CloseOnTemperateStarted == true && regulator.IsOpen)
+                {
+                    regulator.Close();
+                }
+                else if (OpenOnTemperateStarted == true && regulator.IsOpen == false)
+                {
+                    regulator.Open();
+                }
+                if (ScheduleEnabled && !DisableScheduleOnTemperate)
+                {
+                    _scheduleTrigger.Enable();
+                }
+                else if (DisableScheduleOnTemperate)
+                {
+                    _scheduleTrigger.Disable();
+                }
+            }
         }
 
         public void OnExitFinishedState()
         {
             _scheduleTrigger?.Disable();
             DetachAllLinks();
-        }
-
-        public void OnDroughtStarted()
-        {
-            var constructible = GetComponent<BlockObject>();
-            if (constructible.IsUnfinished)
-            {
-                return;
-            }
-            var regulator = GetComponent<WaterSourceRegulator>();
-
-            if (CloseOnDroughtStart == true && regulator.IsOpen)
-            {
-                regulator.Close();
-            }
-            else if (OpenOnDroughtStart == true && regulator.IsOpen == false)
-            {
-                regulator.Open();
-            }
-            if (ScheduleEnabled && !DisableScheduleOnDrought)
-            {
-                _scheduleTrigger.Enable();
-            }
-            else if (DisableScheduleOnDrought)
-            {
-                _scheduleTrigger.Disable();
-            }
-        }
-
-        public void OnBadtideStarted()
-        {
-            var constructible = GetComponent<BlockObject>();
-            if (constructible.IsUnfinished)
-            {
-                return;
-            }
-            var regulator = GetComponent<WaterSourceRegulator>();
-
-            if (CloseOnBadtideStarted == true && regulator.IsOpen)
-            {
-                regulator.Close();
-            }
-            else if (OpenOnBadtideStarted == true && regulator.IsOpen == false)
-            {
-                regulator.Open();
-            }
-            if (ScheduleEnabled && !DisableScheduleOnBadtide)
-            {
-                _scheduleTrigger.Enable();
-            }
-            else if (DisableScheduleOnBadtide)
-            {
-                _scheduleTrigger.Disable();
-            }
-        }
-
-        public void OnTemperateStarted()
-        {
-            Console.WriteLine("foo1");
-            var constructible = GetComponent<BlockObject>();
-            Console.WriteLine("foo2");
-            if (constructible.IsUnfinished)
-            {
-                Console.WriteLine("foo2.1");
-                return;
-            }
-            Console.WriteLine("foo3");
-            var regulator = GetComponent<WaterSourceRegulator>();
-
-            Console.WriteLine("foo4");
-            if (CloseOnTemperateStarted == true && regulator.IsOpen)
-            {
-                Console.WriteLine("foo4.1");
-                regulator.Close();
-            }
-            else if(OpenOnTemperateStarted == true && regulator.IsOpen == false)
-            {
-                Console.WriteLine("foo4.2");
-                regulator.Open();
-            }
-            Console.WriteLine("foo5");
-            if (ScheduleEnabled && !DisableScheduleOnTemperate)
-            {
-                Console.WriteLine("foo5.1");
-                _scheduleTrigger.Enable();
-            }
-            else if (DisableScheduleOnTemperate)
-            {
-                Console.WriteLine("foo5.2");
-                _scheduleTrigger.Disable();
-            }
-            Console.WriteLine("foo6");
+            _weatherServíce.WeatherChanging -= OnWeatherChanged;
         }
 
         public void AttachLink(StreamGaugeMonoBehaviour streamGauge)
@@ -366,18 +336,16 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterSourceRegulator
                 _scheduleTrigger.Disable();
                 return;
             }
-            if (_weatherServíce.IsHazardousWeather)
+            if ((int)Weather <= 3)
             {
-                var hazardService = (HazardousWeatherService)typeof(WeatherService).GetField("_hazardousWeatherService", BindingFlags.NonPublic | BindingFlags.Instance)
-                                                                               .GetValue(_weatherServíce);
-                var hazardType = hazardService.CurrentCycleHazardousWeather.GetType();
-                if (hazardType == typeof(DroughtWeather) &&
+                if (Weather == WeatherTypes.Drought &&
                     DisableScheduleOnDrought)
                 {
                     _scheduleTrigger.Disable();
                     return;
                 }
-                else if(hazardType == typeof(BadtideWeather))
+                else if(Weather == WeatherTypes.Badtide && 
+                    DisableScheduleOnBadtide)
                 {
                     _scheduleTrigger.Disable();
                     return;

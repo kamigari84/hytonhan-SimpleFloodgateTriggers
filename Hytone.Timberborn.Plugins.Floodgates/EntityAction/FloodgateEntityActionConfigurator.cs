@@ -1,41 +1,32 @@
 ﻿using Bindito.Core;
-using HarmonyLib;
+using Bindito.Core.Internal;
 using Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterPumps;
 using Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterSourceRegulators;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Timberborn.BaseComponentSystem;
-using Timberborn.BehaviorSystem;
-using Timberborn.EntitySystem;
 // using Timberborn.IrrigationSystem;
-using Timberborn.Persistence;
-using Timberborn.SerializationSystem;
 using Timberborn.TemplateInstantiation;
-using Timberborn.TemplateSystem;
 using Timberborn.WaterBuildings;
 using Timberborn.WaterSourceSystem;
-using Timberborn.WorldSerialization;
-using UnityEngine;
+
 // using UnityEngine.InputSystem;
 
 namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
 {
 
     [Context("Game")]
-    public class FloodgateEntityActionConfigurator : IConfigurator
+    public class FloodgateEntityActionConfigurator : Configurator
     {
-        public void Configure(IContainerDefinition containerDefinition)
+        protected override void Configure()
         {
-            containerDefinition.Bind<FloodgateTriggerMonoBehaviour>().AsTransient();
-            containerDefinition.Bind<WaterPumpMonobehaviour>().AsTransient();
-            containerDefinition.Bind<WaterSourceRegulatorMonobehaviour>().AsTransient();
-            containerDefinition.Bind<StreamGaugeMonoBehaviour>().AsTransient();
-            containerDefinition.Bind<StreamGaugeFloodgateLinkSerializer>().AsSingleton();
-            containerDefinition.Bind<WaterpumpStreamGaugeLinkSerializer>().AsSingleton();
-            containerDefinition.Bind<WaterSourceRegulatorLinkSerializer>().AsSingleton();
-            containerDefinition.Bind<EventListeners>().AsSingleton();
-            containerDefinition.MultiBind<TemplateModule>().ToProvider(ProvideTemplateModule).AsSingleton();
+            Bind<IWeatherTypeGetter>().To<Default_WeatherTypeGetter>().AsSingleton();
+            Bind<FloodgateTriggerMonoBehaviour>().AsTransient();
+            Bind<WaterPumpMonobehaviour>().AsTransient();
+            Bind<WaterSourceRegulatorMonobehaviour>().AsTransient();
+            Bind<StreamGaugeMonoBehaviour>().AsTransient();
+            Bind<StreamGaugeFloodgateLinkSerializer>().AsSingleton();
+            Bind<WaterpumpStreamGaugeLinkSerializer>().AsSingleton();
+            Bind<WaterSourceRegulatorLinkSerializer>().AsSingleton();
+            Bind<EventListeners>().AsSingleton();
+            MultiBind<TemplateModule>().ToProvider(ProvideTemplateModule).AsSingleton();
         }
 
         private static TemplateModule ProvideTemplateModule()

@@ -9,6 +9,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.Schedule
         {
             containerDefinition.Bind<ScheduleTriggerService>().AsSingleton();
             containerDefinition.Bind<IScheduleTriggerFactory>().To<ScheduleTriggerFactory>().AsSingleton();
+
         }
     }
 }

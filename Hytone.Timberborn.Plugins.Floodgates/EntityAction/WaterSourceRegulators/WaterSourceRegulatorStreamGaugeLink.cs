@@ -3,7 +3,7 @@ using Timberborn.WaterSourceSystem;
 
 namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterPumps
 {
-    public class WaterSourceRegulatorStreamGaugeLink
+    public class WaterSourceRegulatorStreamGaugeLink: IStreamGaugeLink
     {
         public WaterSourceRegulatorMonobehaviour WaterSourceRegulator { get; }
 
@@ -29,9 +29,9 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterPumps
         public bool ContaminationOpenBelowEnabled { get; set; }
         public bool ContaminationOpenAboveEnabled { get; set; }
 
-        public bool DisableDuringDrought;
-        public bool DisableDuringTemperate;
-        public bool DisableDuringBadtide;
+        public bool DisableDuringDrought { get; set; }
+        public bool DisableDuringTemperate { get; set; }
+        public bool DisableDuringBadtide { get; set; }
 
         public WaterSourceRegulatorStreamGaugeLink(
             WaterSourceRegulatorMonobehaviour waterSourceRegulator,
@@ -58,6 +58,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterPumps
             ContaminationCloseAboveThreshold = 0f;
             ContaminationOpenBelowThreshold = 0f;
             ContaminationOpenAboveThreshold = 0f;
-    }
+            DisableDuringDrought = DisableDuringTemperate = DisableDuringTemperate = false;
+        }
     }
 }

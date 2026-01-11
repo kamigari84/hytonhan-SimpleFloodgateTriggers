@@ -3,17 +3,14 @@ using Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterPumps;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Reflection;
 using Timberborn.BaseComponentSystem;
 using Timberborn.BlockSystem;
 using Timberborn.Buildings;
-// using Timberborn.BuildingsBlocking;
 using Timberborn.EntitySystem;
 using Timberborn.TickSystem;
 using Timberborn.WaterBuildings;
 using Timberborn.WaterSourceSystem;
-using ModdableWeathers.Services.ModdableWeatherService;
-using ModdableWeathers.Services.ModdableHazardousWeatherService;
+using UnityEngine;
 
 namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
 {
@@ -33,21 +30,14 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
 
         private StreamGauge _streamGauge;
 
+        public WeatherTypes WeatherTypes { get; private set; }
+        private IWeatherTypeGetter _weatherServíce;
 
-        private ModdableWeatherService _weatherServíce;
-		private ModdableWaterStrengthModifierService _waterStrengthModifierService;
-		private ModdableWaterContaminationModifierService _waterContaminationModifierService;
-		
 
         [Inject]
-        public void InjectDependencies(
-            ModdableWeatherService weatherServíce,
-			ModdableWaterStrengthModifierService WaterStrengthModifierService,
-			ModdableWaterContaminationModifierService WaterContaminationModifierService)
+        public void InjectDependencies(IWeatherTypeGetter weatherServíce)
         {
             _weatherServíce = weatherServíce;
-			_waterStrengthModifierService = WaterStrengthModifierService;
-			_waterContaminationModifierService = WaterContaminationModifierService;
         }
 
 
@@ -122,6 +112,8 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
         {
             this.EnableComponent();
             _streamGauge = this.GetComponent<StreamGauge>();
+            _weatherServíce.WeatherChanging += OnWeatherChange;
+            //WeatherTypes = _weatherServíce.GetWeatherType();
         }
 
         public void OnExitFinishedState()
@@ -130,7 +122,14 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
             DetachAllFloodgates();
             DetachAllWaterpumps();
             DetachAllWaterSourceRegulators();
+            _weatherServíce.WeatherChanging -= OnWeatherChange;
             _streamGauge = null;
+        }
+
+        private void OnWeatherChange(IWeatherTypeGetter weatherTypeGetter, WeatherChange weatherChange)
+        {
+            Console.WriteLine("{SimpleFloodgateTriggers}{STREAMGAUGE} Weather Changing from / "+weatherChange.ChangesFrom.ToString()+" / into [ "+weatherChange.ChangesTo.ToString()+" ]");
+            WeatherTypes = weatherChange.ChangesTo;
         }
 
         /// <summary>
@@ -145,31 +144,14 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
             }
             var currHeight = _streamGauge.WaterLevel;
             var currContamination = _streamGauge.ContaminationLevel;
-            var WaterStrengthMod = _waterStrengthModifierService.CurrentModifier;
-            var WaterContaminationMod = _waterContaminationModifierService.CurrentModifier;
             foreach (var link in FloodgateLinks)
             {
-                if (_weatherServíce.MIsHazardousWeather)
-                {
-                    if ( WaterStrengthMod < 0 && link.DisableDuringDrought )
-                    {
-                        continue;
-                    }
-                    else if ( WaterContaminationMod > 0 && link.DisableDuringBadtide )
-                    {
-                        continue;
-                    }
-					else if ( link.DisableDuringTemperate && WaterContaminationMod == -1 && WaterStrengthMod >= 0 )
-                    {
-                        continue;
-                    }
-                }
-                else if ( link.DisableDuringTemperate && !_weatherServíce.MIsHazardousWeather )
+                if (!CheckIfNotWeatherDisabled(link))
                 {
                     continue;
                 }
 
-                if(currContamination < link.ContaminationThresholdLow && link.EnableContaminationLow)
+                if (currContamination < link.ContaminationThresholdLow && link.EnableContaminationLow)
                 {
                     var floodgate = link.Floodgate.GetComponent<Floodgate>();
                     if (floodgate.Height != link.ContaminationHeight1)
@@ -208,27 +190,12 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
             }
             foreach (var link in WaterpumpLinks)
             {
-			if (_weatherServíce.MIsHazardousWeather)
-                {
-                    if ( WaterStrengthMod < 0 && link.DisableDuringDrought )
+                    if (!CheckIfNotWeatherDisabled(link))
                     {
                         continue;
                     }
-                    else if ( WaterContaminationMod > 0 && link.DisableDuringBadtide )
-                    {
-                        continue;
-                    }
-					else if ( link.DisableDuringTemperate && WaterContaminationMod == -1 && WaterStrengthMod >= 0 )
-                    {
-                        continue;
-                    }
-                }
-                else if ( link.DisableDuringTemperate && !_weatherServíce.MIsHazardousWeather )
-                {
-                    continue;
-                }
 
-                var constructible = link.WaterPump.GetComponent<BlockObject>();
+                    var constructible = link.WaterPump.GetComponent<BlockObject>();
                 if (constructible.IsUnfinished)
                 {
                     continue;
@@ -293,22 +260,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
             }
             foreach (var link in WaterSourceRegulatorLinks)
             {
-                if (_weatherServíce.MIsHazardousWeather)
-                {
-                    if ( WaterStrengthMod < 0 && link.DisableDuringDrought )
-                    {
-                        continue;
-                    }
-                    else if ( WaterContaminationMod > 0 && link.DisableDuringBadtide )
-                    {
-                        continue;
-                    }
-					else if ( link.DisableDuringTemperate && WaterContaminationMod == -1 && WaterStrengthMod >= 0 )
-                    {
-                        continue;
-                    }
-                }
-                else if ( link.DisableDuringTemperate && !_weatherServíce.MIsHazardousWeather )
+                if (!CheckIfNotWeatherDisabled(link))
                 {
                     continue;
                 }
@@ -376,6 +328,28 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
                     }
                 }
             }
+        }
+
+        private bool CheckIfNotWeatherDisabled(IStreamGaugeLink link)
+        {
+            Debug.unityLogger.Log("WeatherType as int: " + (int)WeatherTypes);
+            if ((int)WeatherTypes > 0)
+            {
+                if (WeatherTypes.HasFlag(WeatherTypes.Drought) && link.DisableDuringDrought)
+                {
+                    return false;
+                }
+                else if (WeatherTypes.HasFlag(WeatherTypes.Badtide) && link.DisableDuringBadtide)
+                {
+                    return false;
+                }
+                else if (link.DisableDuringTemperate && (WeatherTypes.HasFlag(WeatherTypes.Temperate) || (!WeatherTypes.HasFlag(WeatherTypes.Badtide) && !WeatherTypes.HasFlag(WeatherTypes.Drought))))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

@@ -7,11 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Timberborn.Persistence;
 using Timberborn.WaterBuildings;
-using Timberborn.WeatherSystem;
-using UnityEngine;
 using Timberborn.BaseComponentSystem;
-using Timberborn.HazardousWeatherSystem;
-using System.Reflection;
 using Timberborn.SingletonSystem;
 using Timberborn.WorldPersistence;
 
@@ -46,13 +42,14 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
 
         private IScheduleTriggerFactory _scheduleTriggerFactory;
         private IScheduleTrigger _scheduleTrigger;
-        private WeatherService _weatherServíce;
+        private IWeatherTypeGetter _weatherServíce;
         private StreamGaugeFloodgateLinkSerializer _linkSerializer;
         private EventBus _eventBus;
 
         private readonly List<StreamGaugeFloodgateLink> _floodgateLinks = new List<StreamGaugeFloodgateLink>();
         public ReadOnlyCollection<StreamGaugeFloodgateLink> FloodgateLinks { get; private set; }
 
+        public WeatherTypes WeatherTypes { get; private set; }
         public bool DroughtEndedEnabled { get; set; }
         public float DroughtEndedHeight { get; set; }
         public bool DroughtStartedEnabled { get; set; }
@@ -77,7 +74,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
         [Inject]
         public void InjectDependencies(
             IScheduleTriggerFactory scheduleTriggerFactory,
-            WeatherService weatherServíce,
+            IWeatherTypeGetter weatherServíce,
             StreamGaugeFloodgateLinkSerializer linkSerializer,
             EventBus eventBus)
         {
@@ -97,45 +94,91 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
         public void OnEnterFinishedState()
         {
             _scheduleTrigger = _scheduleTriggerFactory.Create(SetFirstScheduleHeight, SetSecondScheduleHeight, FirstScheduleTime, SecondScheduleTime);
+            _weatherServíce.WeatherChanging += OnWeatherChange;
             if (ScheduleEnabled)
             {
                 _scheduleTrigger.Enable();
             }
         }
 
+        private void OnWeatherChange(IWeatherTypeGetter weatherTypeGetter, WeatherChange weatherChange)
+        {
+            var floodgate = GetComponent<Floodgate>();
+
+                if (weatherChange.ChangesFrom.HasFlag(WeatherTypes.Drought))
+                {
+                    if (DroughtEndedEnabled == true &&
+                       floodgate.Height != DroughtEndedHeight)
+                    {
+                        floodgate.SetHeightAndSynchronize(DroughtEndedHeight);
+                    }
+                    if (ScheduleEnabled && !DisableScheduleOnTemperate)
+                    {
+                        _scheduleTrigger.Enable();
+                    }
+                    else if (DisableScheduleOnTemperate)
+                    {
+                        _scheduleTrigger.Disable();
+                    }
+                }
+                else if (weatherChange.ChangesFrom.HasFlag(WeatherTypes.Badtide))
+                {
+                    if (BadtideEndedEnabled == true &&
+                       floodgate.Height != BadtideEndedHeight)
+                    {
+                        floodgate.SetHeightAndSynchronize(BadtideEndedHeight);
+                    }
+                    if (ScheduleEnabled && !DisableScheduleOnBadtide)
+                    {
+                        _scheduleTrigger.Enable();
+                    }
+                    else if (DisableScheduleOnTemperate)
+                    {
+                        _scheduleTrigger.Disable();
+                    }
+                }
+                if (weatherChange.ChangesTo.HasFlag(WeatherTypes.Drought))
+                {
+                    if (DroughtStartedEnabled == true &&
+               floodgate.Height != DroughtStartedHeight)
+                    {
+                        floodgate.SetHeightAndSynchronize(DroughtStartedHeight);
+                    }
+                    if (ScheduleEnabled && !DisableScheduleOnDrought)
+                    {
+                        _scheduleTrigger.Enable();
+                    }
+                    else if (DisableScheduleOnDrought)
+                    {
+                        _scheduleTrigger.Disable();
+                    }
+                }
+                else if (weatherChange.ChangesTo.HasFlag(WeatherTypes.Badtide))
+                {
+                    if (BadtideStartedEnabled == true &&
+               floodgate.Height != BadtideStartedHeight)
+                    {
+                        floodgate.SetHeightAndSynchronize(BadtideStartedHeight);
+                    }
+                    if (ScheduleEnabled && !DisableScheduleOnBadtide)
+                    {
+                        _scheduleTrigger.Enable();
+                    }
+                    else if (DisableScheduleOnBadtide)
+                    {
+                        _scheduleTrigger.Disable();
+                    }
+                }
+            WeatherTypes = weatherChange.ChangesTo;
+        }
+
         public void OnExitFinishedState()
         {
             _scheduleTrigger?.Disable();
             DetachAllLinks();
+            _weatherServíce.WeatherChanging -= OnWeatherChange;
         }
 
-        [OnEvent]
-        public void OnHazardousWeatherStarted(HazardousWeatherStartedEvent hazardousWeatherStartedEvent)
-        {
-            var hazardWeather = hazardousWeatherStartedEvent.HazardousWeather.GetType();
-            if (hazardWeather == typeof(DroughtWeather))
-            {
-                this.OnDroughtStarted();
-            }
-            else if (hazardWeather == typeof(BadtideWeather))
-            {
-                this.OnBadtideStarted();
-            }
-        }
-
-        [OnEvent]
-        public void OnHazardousWeatherEnded(HazardousWeatherEndedEvent hazardousWeatherEndedEndedEvent)
-        {
-            var hazardWeather = hazardousWeatherEndedEndedEvent.HazardousWeather.GetType();
-            if (hazardWeather == typeof(DroughtWeather))
-            {
-                this.OnDroughtEnded();
-            }
-            else if (hazardWeather == typeof(BadtideWeather))
-            {
-                this.OnBadtideEnded();
-            }
-        }
 
         /// <summary>
         /// Save the data so we can load it later
@@ -248,84 +291,8 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
             {
                 BadtideStartedHeight = component.Get(BadtideStartedHeightKey);
             }
-        }
-
-        /// <summary>
-        /// The stuff to do to FLoodgates when a Drought starts
-        /// </summary>
-        public void OnDroughtStarted()
-        {
-            var floodgate = GetComponent<Floodgate>();
-            if (DroughtStartedEnabled == true &&
-               floodgate.Height != DroughtStartedHeight)
-            {
-                floodgate.SetHeightAndSynchronize(DroughtStartedHeight);
-            }
-            if (ScheduleEnabled && !DisableScheduleOnDrought)
-            {
-                _scheduleTrigger.Enable();
-            }
-            else if (DisableScheduleOnDrought)
-            {
-                _scheduleTrigger.Disable();
-            }
-        }
-
-        public void OnBadtideStarted()
-        {
-            var floodgate = GetComponent<Floodgate>();
-            if (BadtideStartedEnabled == true &&
-               floodgate.Height != BadtideStartedHeight)
-            {
-                floodgate.SetHeightAndSynchronize(BadtideStartedHeight);
-            }
-            if (ScheduleEnabled && !DisableScheduleOnBadtide)
-            {
-                _scheduleTrigger.Enable();
-            }
-            else if (DisableScheduleOnBadtide)
-            {
-                _scheduleTrigger.Disable();
-            }
-        }
-
-        /// <summary>
-        /// The stuff to do to Floodgates when a Drought ends
-        /// </summary>
-        public void OnDroughtEnded()
-        {
-            var floodgate = GetComponent<Floodgate>();
-            if (DroughtEndedEnabled == true &&
-               floodgate.Height != DroughtEndedHeight)
-            {
-                floodgate.SetHeightAndSynchronize(DroughtEndedHeight);
-            }
-            if (ScheduleEnabled && !DisableScheduleOnTemperate)
-            {
-                _scheduleTrigger.Enable();
-            }
-            else if (DisableScheduleOnTemperate)
-            {
-                _scheduleTrigger.Disable();
-            }
-        }
-
-        public void OnBadtideEnded()
-        {
-            var floodgate = GetComponent<Floodgate>();
-            if (BadtideEndedEnabled == true &&
-               floodgate.Height != BadtideEndedHeight)
-            {
-                floodgate.SetHeightAndSynchronize(BadtideEndedHeight);
-            }
-            if (ScheduleEnabled && !DisableScheduleOnBadtide)
-            {
-                _scheduleTrigger.Enable();
-            }
-            else if (DisableScheduleOnTemperate)
-            {
-                _scheduleTrigger.Disable();
-            }
+            _weatherServíce.WeatherChanging += OnWeatherChange;
+            //WeatherTypes = _weatherServíce.GetWeatherType();
         }
 
         /// <summary>
@@ -343,10 +310,8 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
                 _scheduleTrigger.Disable();
                 return;
             }
-            var hazardService = (HazardousWeatherService)typeof(WeatherService).GetField("_hazardousWeatherService", BindingFlags.NonPublic | BindingFlags.Instance)
-                                                                               .GetValue(_weatherServíce);
-            if (_weatherServíce.IsHazardousWeather &&
-                hazardService.CurrentCycleHazardousWeather.GetType() == typeof(DroughtWeather))
+
+            if (WeatherTypes.HasFlag(WeatherTypes.Drought))
             {
                 if(DisableScheduleOnDrought)
                 {
@@ -356,8 +321,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
                 _scheduleTrigger.Enable();
                 return;
             }
-            else if (_weatherServíce.IsHazardousWeather &&
-                     hazardService.CurrentCycleHazardousWeather.GetType() == typeof(BadtideWeather))
+            else if (WeatherTypes.HasFlag(WeatherTypes.Badtide))
             {
                 if (DisableScheduleOnBadtide)
                 {
@@ -367,7 +331,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
                 _scheduleTrigger.Enable();
                 return;
             }
-            if (!_weatherServíce.IsHazardousWeather)
+            if (WeatherTypes.HasFlag(WeatherTypes.Temperate))
             {
                 if (DisableScheduleOnTemperate)
                 {

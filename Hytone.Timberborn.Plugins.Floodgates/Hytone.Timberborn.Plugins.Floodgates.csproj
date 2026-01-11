@@ -7,12 +7,8 @@
 	<LangVersion>9.0</LangVersion>
   </PropertyGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="cp $(ProjectDir)bin/Debug/netstandard2.1/Hytone.Timberborn.Plugins.Floodgates.dll /home/hannuh/.steam/steam/steamapps/compatdata/1062090/pfx/drive_c/users/steamuser/Documents/Timberborn/Mods/SimpleFloodgateTriggers/version-1.0" />
-  </Target>
-
   <ItemGroup>
-    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,11 +16,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Managed\Timberborn*.dll" />
-    <Reference Include="Managed\UnityEngine*.dll" />
-    <Reference Include="Managed\Bindito*.dll" />
-    <Reference Include="/home/hannuh/.steam/steam/steamapps/workshop/content/1062090/3434034047/version-0.7/*.dll" />
-    <Reference Include="/home/hannuh/.steam/steam/steamapps/workshop/content/1062090/3283831040/version-1.0/Scripts/*.dll" />
+    <Reference Include="C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed\Timberborn*.dll" />
+    <Reference Include="C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed\UnityEngine*.dll" />
+    <Reference Include="C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed\Bindito*.dll" />
+    <Reference Include="C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090/3434034047/version-0.7/*.dll" />
+    <Reference Include="C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090/3283831040/version-1.0/Scripts/*.dll" />
+    <Reference Include="C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3630523180\version-1.0\ModdableWeathers.dll" />
+	  <Reference Include="C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed\System.Collections.Immutable.dll" />
   </ItemGroup>
 
 </Project>
