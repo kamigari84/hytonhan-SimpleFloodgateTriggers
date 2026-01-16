@@ -17,7 +17,6 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
     {
         protected override void Configure()
         {
-            Bind<IWeatherTypeGetter>().To<Default_WeatherTypeGetter>().AsSingleton();
             Bind<FloodgateTriggerMonoBehaviour>().AsTransient();
             Bind<WaterPumpMonobehaviour>().AsTransient();
             Bind<WaterSourceRegulatorMonobehaviour>().AsTransient();

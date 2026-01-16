@@ -9,6 +9,7 @@ using Timberborn.BlockSystem;
 using Timberborn.Buildings;
 using Timberborn.SingletonSystem;
 using Timberborn.WorldPersistence;
+using WeatherTypeGetterInterface;
 
 namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction.WaterPumps
 {

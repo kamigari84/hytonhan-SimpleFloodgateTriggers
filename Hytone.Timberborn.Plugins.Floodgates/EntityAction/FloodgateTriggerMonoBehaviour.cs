@@ -10,6 +10,7 @@ using Timberborn.WaterBuildings;
 using Timberborn.BaseComponentSystem;
 using Timberborn.SingletonSystem;
 using Timberborn.WorldPersistence;
+using WeatherTypeGetterInterface;
 
 namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
 {

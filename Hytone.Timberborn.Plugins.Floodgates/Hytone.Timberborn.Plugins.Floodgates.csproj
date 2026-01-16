@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	<LangVersion>9.0</LangVersion>
+	<LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +21,7 @@
     <Reference Include="C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed\Bindito*.dll" />
     <Reference Include="C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090/3434034047/version-0.7/*.dll" />
     <Reference Include="C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090/3283831040/version-1.0/Scripts/*.dll" />
+    <ProjectReference Include="U:\IWeatherTypeGetter\IWeatherTypeGetter.csproj" />
     <Reference Include="C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3630523180\version-1.0\ModdableWeathers.dll" />
 	  <Reference Include="C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed\System.Collections.Immutable.dll" />
   </ItemGroup>

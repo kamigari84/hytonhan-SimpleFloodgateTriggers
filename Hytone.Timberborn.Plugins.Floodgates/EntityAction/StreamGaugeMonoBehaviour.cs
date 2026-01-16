@@ -11,6 +11,7 @@ using Timberborn.TickSystem;
 using Timberborn.WaterBuildings;
 using Timberborn.WaterSourceSystem;
 using UnityEngine;
+using WeatherTypeGetterInterface;
 
 namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
 {
@@ -128,7 +129,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
 
         private void OnWeatherChange(IWeatherTypeGetter weatherTypeGetter, WeatherChange weatherChange)
         {
-            Console.WriteLine("{SimpleFloodgateTriggers}{STREAMGAUGE} Weather Changing from / "+weatherChange.ChangesFrom.ToString()+" / into [ "+weatherChange.ChangesTo.ToString()+" ]");
+            //Console.WriteLine("{SimpleFloodgateTriggers}{STREAMGAUGE} Weather Changing from / "+weatherChange.ChangesFrom.ToString()+" / into [ "+weatherChange.ChangesTo.ToString()+" ]");
             WeatherTypes = weatherChange.ChangesTo;
         }
 
@@ -332,7 +333,7 @@ namespace Hytone.Timberborn.Plugins.Floodgates.EntityAction
 
         private bool CheckIfNotWeatherDisabled(IStreamGaugeLink link)
         {
-            Debug.unityLogger.Log("WeatherType as int: " + (int)WeatherTypes);
+            //Debug.unityLogger.Log("WeatherType as int: " + (int)WeatherTypes);
             if ((int)WeatherTypes > 0)
             {
                 if (WeatherTypes.HasFlag(WeatherTypes.Drought) && link.DisableDuringDrought)
